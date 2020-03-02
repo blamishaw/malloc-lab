@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+extern static void *extend_heap(size_t words);
+extern static void *coalesce(void *bp);
 extern int mm_init (void);
 extern void *mm_malloc (size_t size);
 extern void mm_free (void *ptr);
