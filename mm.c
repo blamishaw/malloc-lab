@@ -26,11 +26,11 @@ team_t team = {
     /* Team name */
     "",
     /* First member's full name */
-    "",
+    "Brendan Lamishaw",
     /* First member's email address */
-    "",
+    "brendanlamishaw2021@u.northwestern.edu",
     /* Second member's full name (leave blank if none) */
-    "",
+    "Naveena Sharma",
     /* Second member's email address (leave blank if none) */
     ""
 };
