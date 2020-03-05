@@ -78,6 +78,7 @@ static void *extend_heap(size_t words);
 static void *find_fit(size_t asize);
 static void place(void *bp, size_t asize);
 static void *coalesce(void *bp);
+static int mm_check(void);
 
 
 /*
@@ -127,10 +128,10 @@ void *mm_malloc(size_t size)
         return NULL;
     
     /* Adjust block size to include overhead and alignment reqs */
-    if (size <= ALIGNMENT)
-        asize = 2*ALIGNMENT;
+    if (size <= DSIZE)
+        asize = 2*DSIZE;
     else
-        asize = ALIGNMENT * (ALIGN(size));
+        asize = DSIZE * ((size + (DSIZE) + (DSIZE-1)) / DSIZE);
     
     /* Search the free list for a fit */
     if ((bp = find_fit(asize)) != NULL){
@@ -270,14 +271,6 @@ void place(void *bp, size_t asize){
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
+static int mm_check(void){
+    return 0;
+}
