@@ -1,6 +1,8 @@
 #include <stdio.h>
 
 extern static void *extend_heap(size_t words);
+extern static void *find_fit(size_t asize);
+extern static void place(void *bp, size_t asize);
 extern static void *coalesce(void *bp);
 extern int mm_init (void);
 extern void *mm_malloc (size_t size);
