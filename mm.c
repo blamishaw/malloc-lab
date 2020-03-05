@@ -73,6 +73,12 @@ team_t team = {
 /* Static global pointer to prologue block of heap */
 static char *heap_listp;
 
+/* Forward-declarations of helper functions */
+static void *extend_heap(size_t words);
+static void *find_fit(size_t asize);
+static void place(void *bp, size_t asize);
+static void *coalesce(void *bp);
+
 
 /*
     As of right now this implementation uses:
@@ -247,7 +253,7 @@ static void *find_fit(size_t asize){
 }
 
 /* Helper function that deals with free block splitting protocol */
-static void place(void *bp, size_t asize){
+void place(void *bp, size_t asize){
     
     size_t csize = GET_SIZE(HDRP(bp));
     
