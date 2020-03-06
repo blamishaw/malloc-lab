@@ -71,7 +71,7 @@ team_t team = {
 #define PREV_BLKP(bp)   ((char *)(bp) - GET_SIZE(((char *)(bp) - DSIZE)))
 
 /* Static global pointer to prologue block of heap */
-static char *heap_listp = NULL;
+static char *heap_listp = 0;
 
 /* Forward-declarations of helper functions */
 static void *extend_heap(size_t words);
