@@ -98,6 +98,10 @@ static void place(void *bp, size_t asize);
 static void *coalesce(void *bp);
 static int mm_check(void);
 
+/* Forward declarations for check functions */
+static int checkBlockHFA(void *bp);
+static int checkBlocksOverlap(void *bp);
+
 
 /*
     As of right now this implementation uses:
@@ -253,6 +257,8 @@ static void *coalesce(void *bp){
         bp = PREV_BLKP(bp);
     }
     
+    mm_check();
+    
     return bp;
 }
 
@@ -291,24 +297,55 @@ void place(void *bp, size_t asize){
 
 static int mm_check(void) {
     
-    char *bp = heap_listp;
+    char *bp;
+    int errno = 1;
     
     // For each block in the heap
-    for (bp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)) {
+    for (bp = heap_listp; NEXT_BLKP(bp) != NULL; bp = NEXT_BLKP(bp)) {
+        errno = checkBlockHFA(bp);
         
-        // Check if header equals footer
-//        if (GET(HDRP(bp)) != GET(FTRP(bp))){
-//            printf("ERROR: Header and footer do not match\n");
-//            return 1;
-//        }
-        assert(GET(HDRP(bp)) == GET(FTRP(bp)));
-        
-        // Check if payload is aligned
-//        else if (!(GET_SIZE(HDRP(bp)) % DSIZE)) {
-//            printf("ERROR: Payload is not aligned to 8 bytes\n");
-//            return 1;
-//        }
+        /* If block is allocated, check that it does not overlap with the next block */
+        if (GET_ALLOC(HDRP(bp)))
+            errno = checkBlocksOverlap(bp);
     }
-    return 0;
-    
+    return errno;
 }
+
+/* Function to check that a block's header and footer match and that it is aligned */
+static int checkBlockHFA(void *bp) {
+    int errno = 1;
+    
+    /* Check header and footer match */
+    if (GET_SIZE(HDRP(bp)) != GET_SIZE(FTRP(bp))){
+        printf("ERROR: Size of header and footer do not match\n");
+        errno = 0;
+    }
+    
+    if (GET_ALLOC(HDRP(bp)) == GET_ALLOC(FTRP(bp))){
+        printf("ERROR: Allocation status of header and footer do not match\n");
+        errno = 0;
+    }
+    
+    /* Make sure payload is aligned */
+    if (ALIGN(GET_SIZE(HDRP(bp))) != GET_SIZE(HDRP(bp))) {
+        printf("ERROR: Payload is not aligned\n");
+        errno = 0;
+    }
+    
+    return errno;
+}
+
+/* Function to check if an allocated block overlaps with the block after it */
+static int checkBlocksOverlap(void *bp){
+    
+    /* Check if the address of bp + the size of bp is greater than the address of the next block */
+    if (bp + GET_SIZE(HDRP(bp)) - WSIZE >= NEXT_BLKP(bp) {
+        printf("ERROR: Block overlaps with next block\n");
+        return 0;
+    }
+    
+    return 1;
+}
+        
+        
+    
