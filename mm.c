@@ -224,7 +224,7 @@ static void *coalesce(void *bp){
         // Update header of current block and footer of next block
         size += GET_SIZE(HDRP(NEXT_BLKP(bp)));
         PUT(HDRP(bp), PACK(size, 0));
-        PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 0));                /* Different from book code -- why? */
+        PUT(FTRP(bp), PACK(size, 0));                /* Different from book code -- why? */
     }
     
     /* Both the prev and next blocks are unallocated -> coalesce in both directions*/
