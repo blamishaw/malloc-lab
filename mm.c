@@ -339,7 +339,7 @@ static int checkBlockHFA(void *bp) {
 static int checkBlocksOverlap(void *bp){
     
     /* Check if the address of bp + the size of bp is greater than the address of the next block */
-    if (bp + GET_SIZE(HDRP(bp)) - WSIZE >= NEXT_BLKP(bp) {
+    if (bp + GET_SIZE(HDRP(bp)) - WSIZE >= NEXT_BLKP(bp)) {
         printf("ERROR: Block overlaps with next block\n");
         return 0;
     }
