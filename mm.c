@@ -49,7 +49,7 @@ team_t team = {
 #define DSIZE 8                 /* Double word size in bytes */
 #define CHUNKSIZE (1 << 12)     /* Extend heap by this amount (bytes) */
 
-#define MAX(x,y) ((x > y) ? x : y)
+#define MAX(x,y) ((x) > (y) ? (x) : (y))
 
 /* Pack a size and allocated bit into a word */
 #define PACK(size, alloc) ((size) | (alloc))
@@ -99,7 +99,7 @@ static int mm_check(void);
  */
 int mm_init(void)
 {
-    if ((heap_listp == mem_sbrk(4*WSIZE)) == (void *)-1)
+    if ((heap_listp = mem_sbrk(4*WSIZE)) == (void *)-1)
         return -1;
     PUT(heap_listp, 0);                                     /* Alignment padding */
     PUT(heap_listp + (1*WSIZE), PACK(DSIZE, 1));            /* Prologue header */
