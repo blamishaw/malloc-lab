@@ -9,24 +9,6 @@
  * NOTE TO STUDENTS: Replace this header comment with your own header
  * comment that gives a high level description of your solution.
  */
-
-/* THE EIGHT CARDINAL RULES
- for (rule = 1; rule < 9; rule++)
-    printf("%d", rules[rule]);
- 
- rules = [
- 1. Know your rights.
- 2. Acknowledge your sources.
- 3. Protect your work.
- 4. Avoid suspicion.
- 5. Do your own work.
- 6. Never falsify a record or permit another person to do so.
- 7. Never fabricate data, citations, or experimental results.
- 8. Always tell the truth when discussing your work with your instructor.
- ]
- 
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -35,6 +17,23 @@
 
 #include "mm.h"
 #include "memlib.h"
+
+/* THE EIGHT CARDINAL RULES
+for (rule = 1; rule < 9; rule++)
+   printf("%d", rules[rule]);
+
+rules = [
+1. Know your rights.
+2. Acknowledge your sources.
+3. Protect your work.
+4. Avoid suspicion.
+5. Do your own work.
+6. Never falsify a record or permit another person to do so.
+7. Never fabricate data, citations, or experimental results.
+8. Always tell the truth when discussing your work with your instructor.
+]
+
+*/
 
 /*********************************************************
  * NOTE TO STUDENTS: Before you do anything else, please
@@ -257,24 +256,17 @@ static void *coalesce(void *bp){
 }
 
 /* Helper function to find a free block in the heap
-   This uses the best-fit method
+   Uses the first-fit method
 */
 
 static void *find_fit(size_t asize){
     void *bp;
-    void *smallest_so_far = heap_listp;
     
     for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)){
         if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp)))) {
-            if (GET_SIZE(HDRP(bp)) < GET_SIZE(HDRP(smallest_so_far))) {
-                smallest_so_far = bp;
-            }
+            return bp;
         }
     }
-    if (smallest_so_far != heap_listp){
-        return smallest_so_far;
-    }
-    
     return NULL;
 }
 
@@ -304,17 +296,16 @@ static int mm_check(void) {
     for (bp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)) {
         
         // Check if header equals footer
-//        if (GET(HDRP(bp)) != GET(FTRP(bp))){
-//            printf("ERROR: Header and footer do not match\n");
-//            return 1;
-//        }
-        assert(GET(HDRP(bp)) == GET(FTRP(bp)));
+        if (GET(HDRP(bp)) != GET(FTRP(bp))){
+            printf("ERROR: Header and footer do not match\n");
+            return 1;
+        }
         
         // Check if payload is aligned
-//        else if (!(GET_SIZE(HDRP(bp)) % DSIZE)) {
-//            printf("ERROR: Payload is not aligned to 8 bytes\n");
-//            return 1;
-//        }
+        else if (!(GET_SIZE(HDRP(bp)) % DSIZE)) {
+            printf("ERROR: Payload is not aligned to 8 bytes\n");
+            return 1;
+        }
     }
     return 0;
     
