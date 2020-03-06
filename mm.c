@@ -71,7 +71,7 @@ team_t team = {
 #define PREV_BLKP(bp)   ((char *)(bp) - GET_SIZE(((char *)(bp) - DSIZE)))
 
 /* Static global pointer to prologue block of heap */
-static void *heap_listp = mem_heap_lo();
+static char *heap_listp;
 
 /* Forward-declarations of helper functions */
 static void *extend_heap(size_t words);
@@ -271,6 +271,25 @@ void place(void *bp, size_t asize){
     }
 }
 
-//static int mm_check(void){
-//    return 0;
-//}
+static int mm_check(void) {
+    
+    char *bp = heap_listp;
+    
+    // For each block in the heap
+    for (bp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)) {
+        
+        // Check if header equals footer
+        if (GET(HDRP(bp)) != GET(FTRP(bp))){
+            printf("ERROR: Header and footer do not match\n");
+            return 1;
+        }
+        
+        // Check if payload is aligned
+        else if (!(GET_SIZE(HDRP(bp)) % DSIZE)) {
+            printf("ERROR: Payload is not aligned to 8 bytes\n");
+            return 1;
+        }
+    }
+    return 0;
+    
+}
