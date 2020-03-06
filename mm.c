@@ -301,7 +301,7 @@ static int mm_check(void) {
     int errno = 1;
     
     // For each block in the heap
-    for (bp = heap_listp; NEXT_BLKP(bp) != NULL; bp = NEXT_BLKP(bp)) {
+    for (bp = heap_listp; GET_SIZE(bp) > 0; bp = NEXT_BLKP(bp)) {
         errno = checkBlockHFA(bp);
         
         /* If block is allocated, check that it does not overlap with the next block */
