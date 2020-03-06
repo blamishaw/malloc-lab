@@ -101,10 +101,10 @@ int mm_init(void)
 {
     if ((heap_listp == mem_sbrk(4*WSIZE)) == (void *)-1)
         return -1;
-    PUT(heap_listp, 0);                                     // Alignment padding
-    PUT(heap_listp + (1*WSIZE), PACK(DSIZE, 1));            // Prologue header
-    PUT(heap_listp + (2*WSIZE), PACK(DSIZE, 1));            // Prologue footer
-    PUT(heap_listp + (3*WSIZE), PACK(0, 1));                // Epilogue header
+    PUT(heap_listp, 0);                                     /* Alignment padding */
+    PUT(heap_listp + (1*WSIZE), PACK(DSIZE, 1));            /* Prologue header */
+    PUT(heap_listp + (2*WSIZE), PACK(DSIZE, 1));            /* Prologue footer */
+    PUT(heap_listp + (3*WSIZE), PACK(0, 1));                /* Epilogue header */
     heap_listp += (2*WSIZE);
     
     /* Extend the empty heap with a free block of CHUNKSIZE bytes */
@@ -119,8 +119,8 @@ int mm_init(void)
  */
 void *mm_malloc(size_t size)
 {
-    size_t asize;        // Adjusted block size
-    size_t extendsize;   // Amount to extend heap if no fit
+    size_t asize;        /* Adjusted block size */
+    size_t extendsize;   /* Amount to extend heap if no fit */
     char *bp;
     
     // Ignore spurious requests
@@ -191,9 +191,9 @@ static void *extend_heap(size_t words) {
         return NULL;
     
     /* Initialize free block header/footer and the epilogue header */
-    PUT(HDRP(bp), PACK(size, 0));           //Free block header
-    PUT(FTRP(bp), PACK(size, 0));           //Free block footer
-    PUT(HDRP(NEXT_BLKP(bp)), PACK(0, 1));   //New epilogue header
+    PUT(HDRP(bp), PACK(size, 0));           /* Free block header */
+    PUT(FTRP(bp), PACK(size, 0));           /* Free block footer */
+    PUT(HDRP(NEXT_BLKP(bp)), PACK(0, 1));   /* New epilogue header */
     
     /* Coalesce if the previous block was free */
     return coalesce(bp);
@@ -212,10 +212,10 @@ static void *coalesce(void *bp){
     /* Previous block unallocated, next block allocated -> coalesce with previous block */
     else if (!prev_alloc && next_alloc){
         // Update header of previous block and footer of bp
-        size += GET_SIZE(HDRP(PREV_BLKP(bp)));                  // Why not FTRP?
-        PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));                // Update header of previous block
-        PUT(FTRP(bp), PACK(size, 0));                           // Update footer of current block
-        bp = PREV_BLKP(bp);                                     // Set bp to point to start of previous block
+        size += GET_SIZE(HDRP(PREV_BLKP(bp)));                  /* Why not FTRP? */
+        PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));                /* Update header of previous block */
+        PUT(FTRP(bp), PACK(size, 0));                           /* Update footer of current block */
+        bp = PREV_BLKP(bp);                                     /* Set bp to point to start of previous block */
         
     }
     
@@ -224,14 +224,14 @@ static void *coalesce(void *bp){
         // Update header of current block and footer of next block
         size += GET_SIZE(HDRP(NEXT_BLKP(bp)));
         PUT(HDRP(bp), PACK(size, 0));
-        PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 0));                // Different from book code -- why?
+        PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 0));                /* Different from book code -- why? */
     }
     
     /* Both the prev and next blocks are unallocated -> coalesce in both directions*/
     else {
         size += GET_SIZE(HDRP(PREV_BLKP(bp))) + GET_SIZE(FTRP(NEXT_BLKP(bp)));
-        PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));                // Update header of previous block
-        PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 0));                // Update footer of next block
+        PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));                /* Update header of previous block */
+        PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 0));                /* Update footer of next block */
         bp = PREV_BLKP(bp);
     }
     
