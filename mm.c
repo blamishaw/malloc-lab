@@ -91,6 +91,7 @@ team_t team = {
 /* Static global pointer to prologue block of heap */
 static char *heap_listp = 0;
 
+
 /* Forward-declarations of helper functions */
 static void *extend_heap(size_t words);
 static void *find_fit(size_t asize);
@@ -302,7 +303,7 @@ static int mm_check(void) {
     
     // For each block in the heap
     for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)) {
-        printf("%p: %d\n", bp, GET_SIZE(HDRP(bp)));
+        //printf("%p: %d\n", bp, GET_SIZE(HDRP(bp)));
         errno = checkBlockHFA(bp);
         
         /* If block is allocated, check that it does not overlap with the next block */
