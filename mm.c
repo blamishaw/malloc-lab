@@ -65,7 +65,7 @@ team_t team = {
 /* Basic constants and macros */
 #define WSIZE 4                 /* Word and header/footer size in bytes */
 #define DSIZE 8                 /* Double word size in bytes */
-#define MIN_BLOCK_SIZE 24       /* Blocks must be at least 24 bytes as that is the min size for free blocks */
+#define MIN_BLOCK_SIZE 16       /* Blocks must be at least 24 bytes as that is the min size for free blocks */
 #define CHUNKSIZE (1 << 12)     /* Extend heap by this amount (bytes) */
 
 #define MAX(x,y) ((x) > (y) ? (x) : (y))
@@ -90,7 +90,11 @@ team_t team = {
 #define PREV_BLKP(bp)   ((char *)(bp) - GET_SIZE(((char *)(bp) - DSIZE)))
 
 /* Macros for the explicit free-list implementation */
-#define PACK_FREE(p, prev, next)   ((char *)(prev) | (char *)(next))
+#define PREV_FREE(bp)   ((char *)(bp))
+#define NEXT_FREE(bp)   ((char *)(bp) + WSIZE)
+
+#define PACK_PREV(bp, val)  (*((unsigned int *) PREV_FREE(bp)) = (val))
+#define PACK_NEXT(bp, val)  (*((unsigned int *) NEXT_FREE(bp)) = (val))
 
 
 
@@ -98,7 +102,7 @@ team_t team = {
 static char *heap_listp = 0;
 
 /* Static global pointer to head of free-list */
-static char *head = 0;
+static char *freelist_headp = 0;
 
 
 /* Forward-declarations of helper functions */
@@ -145,7 +149,7 @@ int mm_init(void)
         return -1;
     
     /* Assign head to initialized free block */
-    head = heap_listp;
+    freelist_headp = heap_listp;
     
     return 0;
 }
@@ -299,7 +303,7 @@ static void *find_fit(size_t asize) {
     while (curr != NULL){
         if (GET_SIZE(HDRP(curr)) >= asize)
             return curr;
-        curr = NEXT_BLKP(curr);
+        curr = GET_NEXT_FREE(curr);
     }
     return NULL;
 }
@@ -346,25 +350,25 @@ void place(void *bp, size_t asize) {
 
 /* Add a block to the front of the free list */
 void addBlock(void *bp){
-    void *old_head = head;
+    char *old_head = freelist_headp;
     
-    *(bp) = 0;
-    *(bp + 8) = old_head;
+    PACK_PREV(bp) = 0;
+    PACK_NEXT(bp) = old_head;
     
-    *(old_head) = bp;
-    head = bp;
+    PACK_PREV(old_head) = bp;
+    freelist_headp = bp;
 }
 
 /* Removes a block from the free list */
 void removeBlock(void *bp){
-    void *prev_block = *(bp);
-    void *next_block = *(bp + 8);
+    char *prev_block = GET(PREV_FREE(bp));
+    char *next_block = GET(NEXT_FREE(bp));
     
     /* Set the "next" field of prev_block to next_block */
-    *(prev_block + 8) = next_block;
+    PACK_NEXT(prev_block) = next_block;
     
     /* Set the "prev" field of next_block to prev_block */
-    *(next_block) = prev_block;
+    PACK_PREV(next_block) = prev_block;
 }
     
 
