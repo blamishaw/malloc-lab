@@ -268,10 +268,11 @@ static void *coalesce(void *bp){
     else if (!prev_alloc && next_alloc){
         // Update header of previous block and footer of bp
         size += GET_SIZE(HDRP(PREV_BLKP(bp)));                  /* Why not FTRP? */
+        removeBlock(PREV_BLKP(bp));                             /* Remove the previous block from free list */
         PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));                /* Update header of previous block */
         PUT(FTRP(bp), PACK(size, 0));                           /* Update footer of current block */
         bp = PREV_BLKP(bp);                                     /* Set bp to point to start of previous block */
-        removeBlock(PREV_BLKP(bp));                             /* Remove the previous block from free list */
+        
         
     }
     
@@ -279,19 +280,21 @@ static void *coalesce(void *bp){
     else if (!next_alloc && prev_alloc){
         // Update header of current block and footer of next block
         size += GET_SIZE(HDRP(NEXT_BLKP(bp)));
+        removeBlock(NEXT_BLKP(bp));                  /* Remove next block from free list */
         PUT(HDRP(bp), PACK(size, 0));
         PUT(FTRP(bp), PACK(size, 0));                /* Different from book code -- why? */
-        removeBlock(NEXT_BLKP(bp));                  /* Remove next block from free list */
+        
     }
     
     /* Both the prev and next blocks are unallocated -> coalesce in both directions*/
     else {
         size += GET_SIZE(HDRP(PREV_BLKP(bp))) + GET_SIZE(FTRP(NEXT_BLKP(bp)));
+        removeBlock(PREV_BLKP(bp));                             /* Remove the previous block from free list */
+        removeBlock(NEXT_BLKP(bp));                             /* Remove next block from free list */
         PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));                /* Update header of previous block */
         PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 0));                /* Update footer of next block */
         bp = PREV_BLKP(bp);
-        removeBlock(PREV_BLKP(bp));                             /* Remove the previous block from free list */
-        removeBlock(NEXT_BLKP(bp));                             /* Remove next block from free list */
+        
     }
     
     insertBlock(bp);
@@ -355,14 +358,16 @@ void place(void *bp, size_t asize) {
     if ((csize - asize) >= (MIN_BLOCK_SIZE)){
         PUT(HDRP(bp), PACK(asize, 1));
         PUT(FTRP(bp), PACK(asize, 1));
+        removeBlock(bp);
         bp = NEXT_BLKP(bp);
         PUT(HDRP(bp), PACK(csize - asize, 0));
         PUT(FTRP(bp), PACK(csize - asize, 0));
-        insertBlock(bp);
+        //insertBlock(bp);
     }
     else {
         PUT(HDRP(bp), PACK(csize, 1));
         PUT(FTRP(bp), PACK(csize, 1));
+        removeBlock(bp);
     }
 }
 
