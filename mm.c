@@ -398,6 +398,9 @@ static void insertBlock(void *bp){
 /* Removes a block from the free list */
 static void removeBlock(void *bp){
     
+    if (free_listp == 0)
+        return;
+    
     /* If bp is the first and only block in the free list */
     if (!GET_PREV_FREE(bp) && !GET_NEXT_FREE(bp)){
         free_listp = 0;
@@ -419,12 +422,11 @@ static void removeBlock(void *bp){
     /* If bp is somewhere in the middle of the list */
     else if (GET_PREV_FREE(bp) && GET_NEXT_FREE(bp)){
         /* Set next of prev block to next block */
-        //PACK_NEXT(GET_PREV_FREE(bp), GET_NEXT_FREE(bp));
+        PACK_NEXT(GET_PREV_FREE(bp), GET_NEXT_FREE(bp));
         
         /* Set prev of next block to prev block*/
-        //PACK_PREV(GET_NEXT_FREE(bp), GET_PREV_FREE(bp));
-        GET_PREV_FREE(GET_NEXT_FREE(bp)) = GET_PREV_FREE(bp);
-        GET_NEXT_FREE(GET_PREV_FREE(bp)) = GET_NEXT_FREE(bp);
+        PACK_PREV(GET_NEXT_FREE(bp), GET_PREV_FREE(bp));
+
     }
     
     
