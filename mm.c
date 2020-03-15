@@ -259,6 +259,9 @@ static void *coalesce(void *bp){
     size_t next_alloc = GET_ALLOC(HDRP(NEXT_BLKP(bp)));
     size_t size = GET_SIZE(HDRP(bp));
     
+    if (PREV_BLKP(bp) == bp)
+        prev_alloc = 1;
+    
     /* Previous and next blocks are allocated -> no coalescing necessary */
     if (next_alloc && prev_alloc){
         return bp;
