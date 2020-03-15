@@ -177,11 +177,12 @@ void *mm_malloc(size_t size)
         return NULL;
     
     /* Adjust block size to include overhead and alignment reqs */
-    /* Make sure allocated block is 24 bytes -- add padding */
-    if (size <= 2*DSIZE)
-        asize = MIN_BLOCK_SIZE;
-    else
-        asize = DSIZE * ((size + (DSIZE) + (DSIZE-1)) / DSIZE);
+    /* Make sure allocated block is 16 bytes -- add padding */
+//    if (size <= 2*DSIZE)
+//        asize = MIN_BLOCK_SIZE;
+//    else
+//        asize = DSIZE * ((size + (DSIZE) + (DSIZE-1)) / DSIZE);
+    asize = MAX(ALIGN(size) + DSIZE, MIN_BLOCK_SIZE);
     
     /* Search the free list for a fit */
     if ((bp = find_fit(asize)) != NULL){
