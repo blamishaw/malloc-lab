@@ -90,8 +90,8 @@ team_t team = {
 #define PREV_BLKP(bp)   ((char *)(bp) - GET_SIZE(((char *)(bp) - DSIZE)))
 
 /* Macros for the explicit free-list implementation */
-#define PREV_FREE(bp)   ((char *)(bp)))
-#define NEXT_FREE(bp)   ((char *)(bp) + WSIZE))
+#define PREV_FREE(bp)   ((char *)(bp))
+#define NEXT_FREE(bp)   ((char *)(bp) + WSIZE)
 
 #define GET_PREV_FREE(bp) (*((char **)(PREV_FREE(bp))))
 #define GET_NEXT_FREE(bp) (*((char **)(NEXT_FREE(bp))))
@@ -306,10 +306,11 @@ static void *coalesce(void *bp){
 
 /* Find first free block that fits in the explicit free list --> linked list traversal */
 static void *find_fit(size_t asize) {
-    char *curr = free_listp;
+    void *curr = free_listp;
     while (curr != NULL){
-        if (GET_SIZE(HDRP(curr)) >= asize)
+        if (GET_SIZE(HDRP(curr)) >= asize){
             return curr;
+        }
         curr = GET_NEXT_FREE(curr);
     }
     return NULL;
@@ -359,7 +360,7 @@ void place(void *bp, size_t asize) {
 static void insertBlock(void *bp){
     
     /* If explicit list is empty */
-    if (!old_head){
+    if (!free_listp){
         PACK_PREV(bp, 0);
         PACK_NEXT(bp, 0);
         free_listp = bp;
