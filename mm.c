@@ -138,21 +138,26 @@ static int checkBlockEscapedCoalesce(void *bp);
  */
 int mm_init(void)
 {
-    if ((heap_listp = mem_sbrk(4*WSIZE)) == (void *)-1)
+    if ((heap_listp = mem_sbrk(8*WSIZE)) == (void *)-1)
         return -1;
-    PUT(heap_listp, 0);                                     /* Alignment padding */
-    PUT(heap_listp + (1*WSIZE), PACK(DSIZE, 1));            /* Prologue header */
-    PUT(heap_listp + (2*WSIZE), PACK(DSIZE, 1));            /* Prologue footer */
-    PUT(heap_listp + (3*WSIZE), PACK(0, 1));                /* Epilogue header */
-    heap_listp += (2*WSIZE);
+    PUT(heap_listp, 0);                                                     /* Alignment padding */
+    PUT(heap_listp + (1*WSIZE), PACK(MIN_BLOCK_SIZE, 1));                   /* Prologue header */
+    
+    PUT(heap_listp + DSIZE, 0);
+    PUT(heap_listp + DSIZE + WSIZE, 0);
+    
+    
+    PUT(heap_listp + MIN_BLOCK_SIZE, PACK(MIN_BLOCK_SIZE, 1));              /* Prologue footer */
+    PUT(heap_listp + MIN_BLOCK_SIZE + WSIZE, PACK(0, 1));                                /* Epilogue header */
 
+    free_listp = heap_listp + DSIZE;
     
     /* Extend the empty heap with a free block of CHUNKSIZE bytes */
     if (extend_heap(CHUNKSIZE/WSIZE) == NULL)
         return -1;
     
     /* Assign head to initialized free block */
-    free_listp = heap_listp;
+    
     
     return 0;
 }
