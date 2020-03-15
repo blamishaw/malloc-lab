@@ -366,6 +366,7 @@ void place(void *bp, size_t asize) {
         PUT(HDRP(bp), PACK(csize - asize, 0));
         PUT(FTRP(bp), PACK(csize - asize, 0));
         //insertBlock(bp);
+        coalesce(bp);
     }
     else {
         PUT(HDRP(bp), PACK(csize, 1));
