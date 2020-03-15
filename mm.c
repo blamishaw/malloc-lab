@@ -352,7 +352,7 @@ void place(void *bp, size_t asize) {
     size_t csize = GET_SIZE(HDRP(bp));
     
     /* Remove free block from list */
-    removeBlock(bp);
+    //removeBlock(bp);
     
     /* If new free block will be greater than 24 bytes */
     if ((csize - asize) >= (MIN_BLOCK_SIZE)){
