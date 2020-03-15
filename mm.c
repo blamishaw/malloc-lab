@@ -93,8 +93,8 @@ team_t team = {
 #define PREV_FREE(bp)   ((char *)(bp))
 #define NEXT_FREE(bp)   ((char *)(bp) + WSIZE)
 
-#define GET_PREV_FREE(bp) (*((char **)(PREV_FREE(bp))))
-#define GET_NEXT_FREE(bp) (*((char **)(NEXT_FREE(bp))))
+#define GET_PREV_FREE(bp) (*(char **)(PREV_FREE(bp)))
+#define GET_NEXT_FREE(bp) (*(char **)(NEXT_FREE(bp)))
 
 #define PACK_PREV(bp, val)  ((GET_PREV_FREE(bp)) = (val))
 #define PACK_NEXT(bp, val)  ((GET_NEXT_FREE(bp)) = (val))
