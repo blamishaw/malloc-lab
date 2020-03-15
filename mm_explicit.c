@@ -42,7 +42,7 @@
  ********************************************************/
 team_t team = {
     /* Team name */
-    "Implicit Free List",
+    "Explicit Free List",
     /* First member's full name */
     "Brendan Lamishaw",
     /* First member's email address */
@@ -90,11 +90,14 @@ team_t team = {
 #define PREV_BLKP(bp)   ((char *)(bp) - GET_SIZE(((char *)(bp) - DSIZE)))
 
 /* Macros for the explicit free-list implementation */
-#define PREV_FREE(bp)   (*((char *)(bp)))
-#define NEXT_FREE(bp)   (*((char *)(bp) + WSIZE))
+#define PREV_FREE(bp)   ((char *)(bp)))
+#define NEXT_FREE(bp)   ((char *)(bp) + WSIZE))
 
-#define PACK_PREV(bp, val)  ((PREV_FREE(bp)) = (val))
-#define PACK_NEXT(bp, val)  ((NEXT_FREE(bp)) = (val))
+#define GET_PREV_FREE(bp) (*((char **)(PREV_FREE(bp))))
+#define GET_NEXT_FREE(bp) (*((char **)(NEXT_FREE(bp))))
+
+#define PACK_PREV(bp, val)  ((GET_PREV_FREE(bp)) = (val))
+#define PACK_NEXT(bp, val)  ((GET_NEXT_FREE(bp)) = (val))
 
 
 
@@ -102,7 +105,7 @@ team_t team = {
 static char *heap_listp = 0;
 
 /* Static global pointer to head of free-list */
-static char *freelist_headp = 0;
+static char *free_listp = 0;
 
 
 /* Forward-declarations of helper functions */
@@ -111,10 +114,13 @@ static void *find_fit(size_t asize);
 static void place(void *bp, size_t asize);
 static void *coalesce(void *bp);
 static int mm_check(void);
+static void removeBlock(void *bp);
+static void insertBlock(void *bp);
 
 /* Forward declarations for check functions */
 static int checkBlockHFA(void *bp);
 static int checkBlocksOverlap(void *bp);
+static int checkBlockEscapedCoalesce(void *bp);
 
 
 /*
@@ -126,9 +132,6 @@ static int checkBlocksOverlap(void *bp);
     Once working, next thing to try is:
         1. Next-fit free block finding
 */
-
-
-
 
 /*
  * mm_init - initialize the malloc package.
@@ -149,7 +152,7 @@ int mm_init(void)
         return -1;
     
     /* Assign head to initialized free block */
-    freelist_headp = heap_listp;
+    free_listp = heap_listp;
     
     return 0;
 }
@@ -215,7 +218,7 @@ void *mm_realloc(void *ptr, size_t size)
     newptr = mm_malloc(size);
     if (newptr == NULL)
       return NULL;
-    copySize = *(size_t *)((char *)oldptr - SIZE_T_SIZE);
+    copySize = GET_SIZE(HDRP(oldptr));
     if (size < copySize)
       copySize = size;
     memcpy(newptr, oldptr, copySize);
@@ -258,6 +261,7 @@ static void *coalesce(void *bp){
         PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));                /* Update header of previous block */
         PUT(FTRP(bp), PACK(size, 0));                           /* Update footer of current block */
         bp = PREV_BLKP(bp);                                     /* Set bp to point to start of previous block */
+        removeBlock(PREV_BLKP(bp));                             /* Remove the previous block from free list */
         
     }
     
@@ -267,6 +271,7 @@ static void *coalesce(void *bp){
         size += GET_SIZE(HDRP(NEXT_BLKP(bp)));
         PUT(HDRP(bp), PACK(size, 0));
         PUT(FTRP(bp), PACK(size, 0));                /* Different from book code -- why? */
+        removeBlock(NEXT_BLKP(bp));                  /* Remove next block from free list */
     }
     
     /* Both the prev and next blocks are unallocated -> coalesce in both directions*/
@@ -275,9 +280,11 @@ static void *coalesce(void *bp){
         PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));                /* Update header of previous block */
         PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 0));                /* Update footer of next block */
         bp = PREV_BLKP(bp);
+        removeBlock(PREV_BLKP(bp));                             /* Remove the previous block from free list */
+        removeBlock(NEXT_BLKP(bp));                             /* Remove next block from free list */
     }
     
-    mm_check();
+    insertBlock(bp);
     
     return bp;
 }
@@ -299,7 +306,7 @@ static void *coalesce(void *bp){
 
 /* Find first free block that fits in the explicit free list --> linked list traversal */
 static void *find_fit(size_t asize) {
-    char *curr = head;
+    char *curr = free_listp;
     while (curr != NULL){
         if (GET_SIZE(HDRP(curr)) >= asize)
             return curr;
@@ -340,7 +347,7 @@ void place(void *bp, size_t asize) {
         bp = NEXT_BLKP(bp);
         PUT(HDRP(bp), PACK(csize - asize, 0));
         PUT(FTRP(bp), PACK(csize - asize, 0));
-        addBlock(bp);
+        insertBlock(bp);
     }
     else {
         PUT(HDRP(bp), PACK(csize, 1));
@@ -349,26 +356,57 @@ void place(void *bp, size_t asize) {
 }
 
 /* Add a block to the front of the free list */
-void addBlock(void *bp){
-    char *old_head = freelist_headp;
+static void insertBlock(void *bp){
     
-    PACK_PREV(bp) = 0;
-    PACK_NEXT(bp) = old_head;
+    /* If explicit list is empty */
+    if (!old_head){
+        PACK_PREV(bp, 0);
+        PACK_NEXT(bp, 0);
+        free_listp = bp;
+    }
     
-    PACK_PREV(old_head) = bp;
-    freelist_headp = bp;
+    /* If explicit list has 1 or more free blocks */
+    else {
+        PACK_PREV(bp, 0);
+        PACK_NEXT(bp, free_listp);
+        
+        PACK_PREV(free_listp, bp);
+        free_listp = bp;
+    }
+    
 }
 
 /* Removes a block from the free list */
-void removeBlock(void *bp){
-    char *prev_block = GET(PREV_FREE(bp));
-    char *next_block = GET(NEXT_FREE(bp));
+static void removeBlock(void *bp){
     
-    /* Set the "next" field of prev_block to next_block */
-    PACK_NEXT(prev_block) = next_block;
+    /* If bp is the first and only block in the free list */
+    if (!GET_PREV_FREE(bp) && !GET_NEXT_FREE(bp)){
+        free_listp = 0;
+    }
     
-    /* Set the "prev" field of next_block to prev_block */
-    PACK_PREV(next_block) = prev_block;
+    /* If bp is the first but not only block in the free list*/
+    else if (!GET_PREV_FREE(bp) && GET_NEXT_FREE(bp)) {
+        /* Set prev of next free block to 0 and update free list head */
+        PACK_NEXT(GET_PREV_FREE(bp), 0);
+        free_listp = GET_NEXT_FREE(bp);
+    }
+    
+    /* If bp is at the end of the list */
+    else if (GET_NEXT_FREE(bp) && !GET_NEXT_FREE(bp)) {
+        /* Set next of prev block to 0 */
+        PACK_PREV(GET_NEXT_FREE(bp), 0);
+    }
+    
+    /* If bp is somewhere in the middle of the list */
+    else {
+        /* Set next of prev block to next block */
+        PACK_NEXT(GET_PREV_FREE(bp), GET_NEXT_FREE(bp));
+        
+        /* Set prev of next block to prev block*/
+        PACK_PREV(GET_NEXT_FREE(bp), GET_PREV_FREE(bp));
+    }
+    
+    
 }
     
 
@@ -385,6 +423,11 @@ static int mm_check(void) {
         /* If block is allocated, check that it does not overlap with the next block */
         if (GET_ALLOC(HDRP(bp)))
             errno = checkBlocksOverlap(bp);
+        
+        /* If block is free, check if the next block is free -> if so then bp escaped coalescing */
+        if (!GET_ALLOC(HDRP(bp)))
+            errno = checkBlockEscapedCoalesce(bp);
+        
     }
     return errno;
 }
@@ -422,7 +465,16 @@ static int checkBlocksOverlap(void *bp){
         return 0;
     }
     
-    return 1;
+    return -1;
+}
+
+static int checkBlockEscapedCoalesce(void *bp){
+    
+    /* If bp is free, check if next block is also free */
+    if (!GET_ALLOC(HDRP(NEXT_BLKP(bp))))
+        printf("Block escaped coalescing\n");
+        return 0;
+    return -1;
 }
         
         
