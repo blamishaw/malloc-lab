@@ -138,16 +138,16 @@ static int checkBlockEscapedCoalesce(void *bp);
  */
 int mm_init(void)
 {
-    if ((heap_listp = mem_sbrk(3*MIN_BLOCK_SIZE)) == (void *)-1)
+    if ((heap_listp = mem_sbrk(2*MIN_BLOCK_SIZE)) == (void *)-1)
         return -1;
     PUT(heap_listp, 0);                                                     /* Alignment padding */
     PUT(heap_listp + (1*WSIZE), PACK(MIN_BLOCK_SIZE, 1));                   /* Prologue header */
     
-    PUT(heap_listp + DSIZE, 0);
-    PUT(heap_listp + DSIZE + WSIZE, 0);
+    PUT(heap_listp + (2*WSIZE), 0);
+    PUT(heap_listp + (3*WSIZE), 0);
     
     
-    PUT(heap_listp + MIN_BLOCK_SIZE, PACK(MIN_BLOCK_SIZE, 1));              /* Prologue footer */
+    PUT(heap_listp + (4*WSIZE), PACK(MIN_BLOCK_SIZE, 1));              /* Prologue footer */
     PUT(heap_listp + MIN_BLOCK_SIZE + WSIZE, PACK(0, 1));                                /* Epilogue header */
 
     free_listp = heap_listp + DSIZE;
@@ -178,11 +178,10 @@ void *mm_malloc(size_t size)
     
     /* Adjust block size to include overhead and alignment reqs */
     /* Make sure allocated block is 16 bytes -- add padding */
-//    if (size <= 2*DSIZE)
-//        asize = MIN_BLOCK_SIZE;
-//    else
-//        asize = DSIZE * ((size + (DSIZE) + (DSIZE-1)) / DSIZE);
-    asize = MAX(ALIGN(size) + DSIZE, MIN_BLOCK_SIZE);
+    if (size <= 2*DSIZE)
+        asize = MIN_BLOCK_SIZE;
+    else
+        asize = DSIZE * ((size + (DSIZE) + (DSIZE-1)) / DSIZE);
     
     /* Search the free list for a fit */
     if ((bp = find_fit(asize)) != NULL){
@@ -204,6 +203,8 @@ void *mm_malloc(size_t size)
 void mm_free(void *bp)
 {
     size_t size = GET_SIZE(HDRP(bp));
+    if (heap_listp == 0)
+        mm_init();
     
     PUT(HDRP(bp), PACK(size, 0));
     PUT(FTRP(bp), PACK(size, 0));
