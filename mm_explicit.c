@@ -9,6 +9,24 @@
  * NOTE TO STUDENTS: Replace this header comment with your own header
  * comment that gives a high level description of your solution.
  */
+
+/* THE EIGHT CARDINAL RULES
+ for (rule = 1; rule < 9; rule++)
+    printf("%d", rules[rule]);
+ 
+ rules = [
+ 1. Know your rights.
+ 2. Acknowledge your sources.
+ 3. Protect your work.
+ 4. Avoid suspicion.
+ 5. Do your own work.
+ 6. Never falsify a record or permit another person to do so.
+ 7. Never fabricate data, citations, or experimental results.
+ 8. Always tell the truth when discussing your work with your instructor.
+ ]
+ 
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -17,23 +35,6 @@
 
 #include "mm.h"
 #include "memlib.h"
-
-/* THE EIGHT CARDINAL RULES
-for (rule = 1; rule < 9; rule++)
-   printf("%d", rules[rule]);
-
-rules = [
-1. Know your rights.
-2. Acknowledge your sources.
-3. Protect your work.
-4. Avoid suspicion.
-5. Do your own work.
-6. Never falsify a record or permit another person to do so.
-7. Never fabricate data, citations, or experimental results.
-8. Always tell the truth when discussing your work with your instructor.
-]
-
-*/
 
 /*********************************************************
  * NOTE TO STUDENTS: Before you do anything else, please
@@ -64,6 +65,7 @@ team_t team = {
 /* Basic constants and macros */
 #define WSIZE 4                 /* Word and header/footer size in bytes */
 #define DSIZE 8                 /* Double word size in bytes */
+#define MIN_BLOCK_SIZE 16       /* Blocks must be at least 24 bytes as that is the min size for free blocks */
 #define CHUNKSIZE (1 << 12)     /* Extend heap by this amount (bytes) */
 
 #define MAX(x,y) ((x) > (y) ? (x) : (y))
@@ -87,8 +89,21 @@ team_t team = {
 #define NEXT_BLKP(bp)   ((char *)(bp) + GET_SIZE(((char *)(bp) - WSIZE)))
 #define PREV_BLKP(bp)   ((char *)(bp) - GET_SIZE(((char *)(bp) - DSIZE)))
 
+/* Macros for the explicit free-list implementation */
+#define PREV_FREE(bp)   (*((char *)(bp)))
+#define NEXT_FREE(bp)   (*((char *)(bp) + WSIZE))
+
+#define PACK_PREV(bp, val)  ((PREV_FREE(bp)) = (val))
+#define PACK_NEXT(bp, val)  ((NEXT_FREE(bp)) = (val))
+
+
+
 /* Static global pointer to prologue block of heap */
 static char *heap_listp = 0;
+
+/* Static global pointer to head of free-list */
+static char *freelist_headp = 0;
+
 
 /* Forward-declarations of helper functions */
 static void *extend_heap(size_t words);
@@ -96,6 +111,10 @@ static void *find_fit(size_t asize);
 static void place(void *bp, size_t asize);
 static void *coalesce(void *bp);
 static int mm_check(void);
+
+/* Forward declarations for check functions */
+static int checkBlockHFA(void *bp);
+static int checkBlocksOverlap(void *bp);
 
 
 /*
@@ -123,10 +142,15 @@ int mm_init(void)
     PUT(heap_listp + (2*WSIZE), PACK(DSIZE, 1));            /* Prologue footer */
     PUT(heap_listp + (3*WSIZE), PACK(0, 1));                /* Epilogue header */
     heap_listp += (2*WSIZE);
+
     
     /* Extend the empty heap with a free block of CHUNKSIZE bytes */
     if (extend_heap(CHUNKSIZE/WSIZE) == NULL)
         return -1;
+    
+    /* Assign head to initialized free block */
+    freelist_headp = heap_listp;
+    
     return 0;
 }
 
@@ -145,8 +169,9 @@ void *mm_malloc(size_t size)
         return NULL;
     
     /* Adjust block size to include overhead and alignment reqs */
-    if (size <= DSIZE)
-        asize = 2*DSIZE;
+    /* Make sure allocated block is 24 bytes -- add padding */
+    if (size <= 2*DSIZE)
+        asize = MIN_BLOCK_SIZE;
     else
         asize = DSIZE * ((size + (DSIZE) + (DSIZE-1)) / DSIZE);
     
@@ -174,7 +199,7 @@ void mm_free(void *bp)
     PUT(HDRP(bp), PACK(size, 0));
     PUT(FTRP(bp), PACK(size, 0));
     
-    /* This immediately coalesces when a block is freed -> To try: deferred coalescing */
+    /* This immediately coalesces when a block is freed */
     coalesce(bp);
 }
 
@@ -252,6 +277,8 @@ static void *coalesce(void *bp){
         bp = PREV_BLKP(bp);
     }
     
+    mm_check();
+    
     return bp;
 }
 
@@ -259,28 +286,61 @@ static void *coalesce(void *bp){
    Uses the first-fit method
 */
 
-static void *find_fit(size_t asize){
-    void *bp;
-    
-    for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)){
-        if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp)))) {
-            return bp;
-        }
+//static void *find_fit(size_t asize){
+//    void *bp;
+//
+//    for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)){
+//        if (!GET_ALLOC(HDRP(bp)) && (asize <= GET_SIZE(HDRP(bp)))) {
+//            return bp;
+//        }
+//    }
+//    return NULL;
+//}
+
+/* Find first free block that fits in the explicit free list --> linked list traversal */
+static void *find_fit(size_t asize) {
+    char *curr = head;
+    while (curr != NULL){
+        if (GET_SIZE(HDRP(curr)) >= asize)
+            return curr;
+        curr = GET_NEXT_FREE(curr);
     }
     return NULL;
 }
 
 /* Helper function that deals with free block splitting protocol */
-void place(void *bp, size_t asize){
+//void place(void *bp, size_t asize){
+//
+//    size_t csize = GET_SIZE(HDRP(bp));
+//
+//    if ((csize - asize) >= (2*ALIGNMENT)){
+//        PUT(HDRP(bp), PACK(asize, 1));
+//        PUT(FTRP(bp), PACK(asize, 1));
+//        bp = NEXT_BLKP(bp);
+//        PUT(HDRP(bp), PACK(csize - asize, 0));
+//        PUT(FTRP(bp), PACK(csize - asize, 0));
+//    }
+//    else {
+//        PUT(HDRP(bp), PACK(csize, 1));
+//        PUT(FTRP(bp), PACK(csize, 1));
+//    }
+//}
+
+void place(void *bp, size_t asize) {
     
     size_t csize = GET_SIZE(HDRP(bp));
     
-    if ((csize - asize) >= (2*ALIGNMENT)){
+    /* Remove free block from list */
+    removeBlock(bp);
+    
+    /* If new free block will be greater than 24 bytes */
+    if ((csize - asize) >= (MIN_BLOCK_SIZE)){
         PUT(HDRP(bp), PACK(asize, 1));
         PUT(FTRP(bp), PACK(asize, 1));
         bp = NEXT_BLKP(bp);
         PUT(HDRP(bp), PACK(csize - asize, 0));
         PUT(FTRP(bp), PACK(csize - asize, 0));
+        addBlock(bp);
     }
     else {
         PUT(HDRP(bp), PACK(csize, 1));
@@ -288,25 +348,83 @@ void place(void *bp, size_t asize){
     }
 }
 
+/* Add a block to the front of the free list */
+void addBlock(void *bp){
+    char *old_head = freelist_headp;
+    
+    PACK_PREV(bp) = 0;
+    PACK_NEXT(bp) = old_head;
+    
+    PACK_PREV(old_head) = bp;
+    freelist_headp = bp;
+}
+
+/* Removes a block from the free list */
+void removeBlock(void *bp){
+    char *prev_block = GET(PREV_FREE(bp));
+    char *next_block = GET(NEXT_FREE(bp));
+    
+    /* Set the "next" field of prev_block to next_block */
+    PACK_NEXT(prev_block) = next_block;
+    
+    /* Set the "prev" field of next_block to prev_block */
+    PACK_PREV(next_block) = prev_block;
+}
+    
+
 static int mm_check(void) {
     
-    char *bp = heap_listp;
+    char *bp;
+    int errno = 1;
     
     // For each block in the heap
-    for (bp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)) {
+    for (bp = heap_listp; GET_SIZE(HDRP(bp)) > 0; bp = NEXT_BLKP(bp)) {
+        //printf("%p: %d\n", bp, GET_SIZE(HDRP(bp)));
+        errno = checkBlockHFA(bp);
         
-        // Check if header equals footer
-        if (GET(HDRP(bp)) != GET(FTRP(bp))){
-            printf("ERROR: Header and footer do not match\n");
-            return 1;
-        }
-        
-        // Check if payload is aligned
-        else if (!(GET_SIZE(HDRP(bp)) % DSIZE)) {
-            printf("ERROR: Payload is not aligned to 8 bytes\n");
-            return 1;
-        }
+        /* If block is allocated, check that it does not overlap with the next block */
+        if (GET_ALLOC(HDRP(bp)))
+            errno = checkBlocksOverlap(bp);
     }
-    return 0;
-    
+    return errno;
 }
+
+/* Function to check that a block's header and footer match and that it is aligned */
+static int checkBlockHFA(void *bp) {
+    int errno = 1;
+    
+    /* Check header and footer match */
+    if (GET_SIZE(HDRP(bp)) != GET_SIZE(FTRP(bp))){
+        printf("ERROR: Size of header and footer do not match\n");
+        errno = 0;
+    }
+    
+    if (GET_ALLOC(HDRP(bp)) != GET_ALLOC(FTRP(bp))){
+        printf("ERROR: Allocation status of header and footer do not match\n");
+        errno = 0;
+    }
+    
+    /* Make sure payload is aligned */
+    if (ALIGN(GET_SIZE(HDRP(bp))) != GET_SIZE(HDRP(bp))) {
+        printf("ERROR: Payload is not aligned\n");
+        errno = 0;
+    }
+    
+    return errno;
+}
+
+/* Function to check if an allocated block overlaps with the block after it */
+static int checkBlocksOverlap(void *bp){
+    
+    /* Check if the address of bp + the size of bp is greater than the address of the next block */
+    if (bp + GET_SIZE(HDRP(bp)) - WSIZE >= NEXT_BLKP(bp)) {
+        printf("ERROR: Block overlaps with next block\n");
+        return 0;
+    }
+    
+    return 1;
+}
+        
+        
+    
+
