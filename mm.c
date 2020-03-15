@@ -138,7 +138,7 @@ static int checkBlockEscapedCoalesce(void *bp);
  */
 int mm_init(void)
 {
-    if ((heap_listp = mem_sbrk(8*WSIZE)) == (void *)-1)
+    if ((heap_listp = mem_sbrk(3*MIN_BLOCK_SIZE)) == (void *)-1)
         return -1;
     PUT(heap_listp, 0);                                                     /* Alignment padding */
     PUT(heap_listp + (1*WSIZE), PACK(MIN_BLOCK_SIZE, 1));                   /* Prologue header */
