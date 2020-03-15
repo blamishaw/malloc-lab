@@ -408,7 +408,7 @@ static void removeBlock(void *bp){
     }
     
     /* If bp is at the end of the list */
-    else if (GET_NEXT_FREE(bp) && !GET_NEXT_FREE(bp)) {
+    else if (GET_PREV_FREE(bp) && !GET_NEXT_FREE(bp)) {
         /* Set next of prev block to 0 */
         PACK_PREV(GET_NEXT_FREE(bp), NULL);
     }
