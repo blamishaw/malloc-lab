@@ -417,7 +417,7 @@ static void removeBlock(void *bp){
     }
     
     /* If bp is somewhere in the middle of the list */
-    else {
+    else if (GET_PREV_FREE(bp) && GET_NEXT_FREE(bp)){
         /* Set next of prev block to next block */
         PACK_NEXT(GET_PREV_FREE(bp), GET_NEXT_FREE(bp));
         
