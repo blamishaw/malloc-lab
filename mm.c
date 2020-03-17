@@ -509,7 +509,6 @@ static int checkBlockOutOfBounds(void *bp){
     char *heap_hi = mem_heap_hi();
     
     if (bp > mem_heap_hi() || bp < mem_heap_lo()) {
-        raise(SIGINT);
         printf("Block %p out of bounds\n", bp);
         return 0;
     }
