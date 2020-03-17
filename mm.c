@@ -32,6 +32,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <string.h>
+#include <signal.h>
 
 #include "mm.h"
 #include "memlib.h"
@@ -503,8 +504,12 @@ static int checkBlockEscapedCoalesce(void *bp){
 }
 
 static int checkBlockOutOfBounds(void *bp){
-    printf("Heap Lo: %p -- Heap Hi: %p\n", mem_heap_lo(), mem_heap_hi());
+    //printf("Heap Lo: %p -- Heap Hi: %p\n", mem_heap_lo(), mem_heap_hi());
+    char *heap_lo = mem_heap_lo();
+    char *heap_hi = mem_heap_hi();
+    
     if (bp > mem_heap_hi() || bp < mem_heap_lo()) {
+        raise(SIGINT);
         printf("Block %p out of bounds\n", bp);
         return 0;
     }
