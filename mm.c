@@ -121,6 +121,7 @@ static void insertBlock(void *bp);
 static int checkBlockHFA(void *bp);
 static int checkBlocksOverlap(void *bp);
 static int checkBlockEscapedCoalesce(void *bp);
+static int checkBlockOutOfBounds(void *bp);
 
 
 /*
@@ -398,7 +399,7 @@ static void insertBlock(void *bp){
 
 /* Removes a block from the free list */
 static void removeBlock(void *bp){
-    
+    checkBlockOutOfBounds(bp);
     if (free_listp == 0)
         return;
     
@@ -499,6 +500,10 @@ static int checkBlockEscapedCoalesce(void *bp){
         printf("Block escaped coalescing\n");
         return 0;
     return -1;
+}
+
+static int checkBlockOutOfBounds(void *bp){
+    return bp > mem_heap_hi() || bp < mem_heap_lo();
 }
         
         
