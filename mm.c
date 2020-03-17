@@ -503,8 +503,9 @@ static int checkBlockEscapedCoalesce(void *bp){
 }
 
 static int checkBlockOutOfBounds(void *bp){
+    printf("Heap Lo: %p -- Heap Hi: %p\n", mem_heap_lo(), mem_heap_hi());
     if (bp > mem_heap_hi() || bp < mem_heap_lo()) {
-        printf("Block %p is out of bounds", bp);
+        printf("Block %p out of bounds\n", bp);
         return 0;
     }
     return 1;
