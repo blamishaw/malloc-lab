@@ -265,12 +265,10 @@ static void *coalesce(void *bp){
         prev_alloc = 1;
     
     /* Previous and next blocks are allocated -> no coalescing necessary */
-    if (next_alloc && prev_alloc){
-        return bp;
-    }
+    
     
     /* Previous block unallocated, next block allocated -> coalesce with previous block */
-    else if (!prev_alloc && next_alloc){
+    if (!prev_alloc && next_alloc){
         // Update header of previous block and footer of bp
         size += GET_SIZE(HDRP(PREV_BLKP(bp)));                  /* Why not FTRP? */
         removeBlock(PREV_BLKP(bp));                             /* Remove the previous block from free list */
