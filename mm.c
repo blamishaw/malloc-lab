@@ -290,7 +290,7 @@ static void *coalesce(void *bp){
     }
     
     /* Both the prev and next blocks are unallocated -> coalesce in both directions*/
-    else {
+    else if (!prev_alloc && !next_alloc) {
         size += GET_SIZE(HDRP(PREV_BLKP(bp))) + GET_SIZE(FTRP(NEXT_BLKP(bp)));
         removeBlock(PREV_BLKP(bp));                             /* Remove the previous block from free list */
         removeBlock(NEXT_BLKP(bp));                             /* Remove next block from free list */
