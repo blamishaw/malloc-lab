@@ -381,7 +381,7 @@ void place(void *bp, size_t asize) {
 static void insertBlock(void *bp){
     
     /* If explicit list is empty */
-    if (!free_listp){
+    if (free_listp == NULL){
         PACK_PREV(bp, NULL);
         PACK_NEXT(bp, NULL);
         free_listp = bp;
@@ -405,25 +405,25 @@ static void removeBlock(void *bp){
         return;
     
     /* If bp is the first and only block in the free list */
-    if (!GET_PREV_FREE(bp) && !GET_NEXT_FREE(bp)){
+    if (GET_PREV_FREE(bp) == NULL && !GET_NEXT_FREE(bp) == NULL){
         free_listp = 0;
     }
     
     /* If bp is the first but not only block in the free list*/
-    else if (!GET_PREV_FREE(bp) && GET_NEXT_FREE(bp)) {
+    else if (GET_PREV_FREE(bp) == NULL && GET_NEXT_FREE(bp) != NULL) {
         /* Set prev of next free block to 0 and update free list head */
         PACK_NEXT(GET_PREV_FREE(bp), NULL);
         free_listp = GET_NEXT_FREE(bp);
     }
     
     /* If bp is at the end of the list */
-    else if (GET_PREV_FREE(bp) && !GET_NEXT_FREE(bp)) {
+    else if (GET_PREV_FREE(bp) != NULL && GET_NEXT_FREE(bp) == NULL) {
         /* Set next of prev block to 0 */
         PACK_PREV(GET_NEXT_FREE(bp), NULL);
     }
     
     /* If bp is somewhere in the middle of the list */
-    else if (GET_PREV_FREE(bp) && GET_NEXT_FREE(bp)){
+    else if (GET_PREV_FREE(bp) != NULL && GET_NEXT_FREE(bp) != NULL){
         /* Set next of prev block to next block */
         PACK_NEXT(GET_PREV_FREE(bp), GET_NEXT_FREE(bp));
         
